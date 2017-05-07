@@ -52,6 +52,8 @@ public interface Card {
 //        DIAMONDS ("D"),
 //        HEARTS ("H"),
 //        SPADES ("S");
+
+
     public static enum Color{
         CLUBS ("c"),
         DIAMONDS ("d"),

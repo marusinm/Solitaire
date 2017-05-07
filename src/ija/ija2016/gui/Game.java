@@ -9,6 +9,10 @@ import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import java.awt.*;
 import java.awt.event.KeyEvent;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 
 /**
  * Represent individual games on GUI level.
@@ -109,6 +113,17 @@ public class Game extends JInternalFrame {
         @Override
         public void menuSelected(MenuEvent e) {
             System.out.println("save...");
+            final JFileChooser fc = new JFileChooser();
+            int returnVal = fc.showSaveDialog(game);
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                File file = fc.getSelectedFile();
+                //This is where a real application would open the file.
+                System.out.println("Save to path: " + file.getAbsoluteFile().toString());
+                saveGame(file.getAbsoluteFile().toString());
+                JOptionPane.showMessageDialog(panel, "Game saved!");
+            } else {
+                System.out.println("Open command cancelled by user.");
+            }
         }
         @Override
         public void menuDeselected(MenuEvent e) {
@@ -374,6 +389,120 @@ public class Game extends JInternalFrame {
             pack.get(pack.size()-1).turnFaceUp(); //turn up last card
 
             redrawingLogic.drawWorkingPack(pack);
+        }
+    }
+
+    public void saveGame(String file_path){
+        BufferedWriter out = null;
+        try
+        {
+            FileWriter fstream = new FileWriter(file_path, false); //true tells to append data.
+//            FileWriter fstream = new FileWriter("out.txt", false); //true tells to append data.
+            out = new BufferedWriter(fstream);
+
+            /*
+             *   parse here state of decks&packs
+             *   write to file
+             */
+            String shortcut;
+            boolean isFacedUp;
+
+            /*working packs*/
+            for (int i = 0; i < this.gameManager.workingPacksArray.length; i++) {
+                out.write("WP" + (i+1)+"\n");
+                // for each card in pack
+                for (int j = 0; j < this.gameManager.workingPacksArray[i].size(); j++){
+                    isFacedUp = this.gameManager.workingPacksArray[i].getCard(j).isTurnedFaceUp();
+
+                    if (isFacedUp){
+                        shortcut = "t";
+                    }else shortcut = "f";
+
+                    out.write(shortcut);
+                    out.write(this.gameManager.workingPacksArray[i].getCard(j).toString());
+                    out.write(" ");
+                }
+
+                out.write("\n");
+            }
+
+            /*deck*/
+            out.write("DECK\n");
+            // store deck
+            for(int i = 0; i < (this.gameManager.deck.size()); i++){
+                isFacedUp = this.gameManager.deck.getCard(i).isTurnedFaceUp();
+
+                shortcut = "f";
+                if (isFacedUp)
+                    shortcut = "t";
+
+                out.write(shortcut);
+                out.write(this.gameManager.deck.getCard(i).toString());
+                out.write(" ");
+            }
+            out.write("\n");
+
+            /*helper deck*/
+            out.write("HELPERDECK\n");
+            for (int i = 0; i < (this.gameManager.helperDeck.size()); i++){
+                isFacedUp = this.gameManager.helperDeck.get(i).isTurnedFaceUp();
+
+                shortcut = "f";
+                if (isFacedUp)
+                    shortcut = "t";
+
+                out.write(shortcut);
+                out.write(this.gameManager.helperDeck.get(i).toString());
+                out.write(" ");
+            }
+            out.write("\n");
+
+            /*target packs*/
+            CardDeck[] targetPacks = {
+                    gameManager.targedPack1,
+                    gameManager.targedPack2,
+                    gameManager.targedPack3,
+                    gameManager.targedPack4,
+            };
+            int target_pack = 0;
+            for (CardDeck targetPack : targetPacks){
+                target_pack++;
+                out.write("TARPACK"+target_pack+"\n");
+                for (int i = 0; i < targetPack.size(); i++){
+                    isFacedUp = targetPack.get(i).isTurnedFaceUp();
+
+                    shortcut = "f";
+                    if (isFacedUp)
+                        shortcut = "t";
+
+                    out.write(shortcut);
+                    out.write(targetPack.get(i).toString());
+                    out.write(" ");
+                }
+                out.write("\n");
+            }
+
+            /*helper card*/
+            out.write("HELPERCARD\n");
+            if (gameManager.helperCard != null){
+                out.write("t");
+                out.write(this.gameManager.helperCard.toString());
+                out.write("\n");
+            }
+        }
+        catch (IOException e)
+        {
+            System.err.println("Error: " + e.getMessage());
+        }
+        finally
+        {
+            if(out != null) {
+                try {
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 }

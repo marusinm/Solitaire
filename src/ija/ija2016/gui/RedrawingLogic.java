@@ -30,7 +30,6 @@ public class RedrawingLogic {
     RedrawingLogic.SourceStack sourceStack = RedrawingLogic.SourceStack.WORKING_PACK;
 
     ArrayList<ArrayList<CardView>> cardViews = new ArrayList<>();
-    ArrayList<Card> helperDeck = new ArrayList<>(); // nahravaju sa tu vsetky popnute carty z docku, pre pripad cyklenia v docku
     CardView helperCardView = null;
     CardView targetCardView1 = null;
     CardView targetCardView2 = null;
@@ -73,11 +72,11 @@ public class RedrawingLogic {
             public void mouseClicked(MouseEvent e) {
                 if (deck.size()-1 == -1){
                     //try to refill deck from helperDock
-                    for (int i = helperDeck.size()-1; i >= 0; i--){
-                        Card card1 = helperDeck.get(i);
+                    for (int i = game.gameManager.helperDeck.size()-1; i >= 0; i--){
+                        Card card1 = game.gameManager.helperDeck.get(i);
                         deck.put(card1);
                     }
-                    helperDeck.clear();
+                    game.gameManager.helperDeck.clear();
                 }
 
 
@@ -85,7 +84,7 @@ public class RedrawingLogic {
                     helperStack = null; //always reload old data
                     helperStack = deck.pop(deck.getCard(deck.size()-1));
 
-                    helperDeck.add(helperStack.getCard(helperStack.size()-1));
+                    game.gameManager.helperDeck.add(helperStack.getCard(helperStack.size()-1));
 
                     drawHelperCard();
                 }
@@ -123,8 +122,8 @@ public class RedrawingLogic {
                         if(drawTargetPack(card)) {
                             System.out.println("new card added to target pack");
                             movingStack = null;
-                            helperStack.pop(helperDeck.get(helperDeck.size() - 1));
-                            helperDeck.remove(helperDeck.size() - 1);
+                            helperStack.pop(game.gameManager.helperDeck.get(game.gameManager.helperDeck.size() - 1));
+                            game.gameManager.helperDeck.remove(game.gameManager.helperDeck.size() - 1);
                             drawHelperCard();
                         }else{
                             System.out.println("no card added to target pack on double click");
@@ -138,7 +137,7 @@ public class RedrawingLogic {
 
                         //get card back into helperStack, cause it was poped in previos step
                         //we pop this card after it will be setted on right place
-                        helperStack.put(helperDeck.get(helperDeck.size() - 1));
+                        helperStack.put(game.gameManager.helperDeck.get(game.gameManager.helperDeck.size() - 1));
                     }
                 }
             });
@@ -253,8 +252,8 @@ public class RedrawingLogic {
                                         drawHelperCard();
 
                                         movingStack = null;
-                                        helperStack.pop(helperDeck.get(helperDeck.size()-1));
-                                        helperDeck.remove(helperDeck.size()-1);
+                                        helperStack.pop(game.gameManager.helperDeck.get(game.gameManager.helperDeck.size()-1));
+                                        game.gameManager.helperDeck.remove(game.gameManager.helperDeck.size()-1);
                                         drawHelperCard();
                                         game.gameManager.helperCard = null;
 
@@ -317,8 +316,8 @@ public class RedrawingLogic {
                                     drawHelperCard();
 
                                     movingStack = null;
-                                    helperStack.pop(helperDeck.get(helperDeck.size()-1));
-                                    helperDeck.remove(helperDeck.size()-1);
+                                    helperStack.pop(game.gameManager.helperDeck.get(game.gameManager.helperDeck.size()-1));
+                                    game.gameManager.helperDeck.remove(game.gameManager.helperDeck.size()-1);
                                     drawHelperCard();
                                     game.gameManager.helperCard = null;
 

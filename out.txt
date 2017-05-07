@@ -1,0 +1,28 @@
+WP1
+
+WP2
+f8s t10s 
+WP3
+f9d f8h t10c 
+WP4
+f5c t5d 
+WP5
+fkd f3h fjh f2d t7s t6d t5s 
+WP6
+f2s f5h fjc f7c tqc tjd 
+WP7
+f7h fqh f8d fkc fkh tqd tjs t10d t9c 
+DECK
+tad t6h tqs t2c t8c t3s t6c tas t4h t6s t9h tks t3d 
+HELPERDECK
+t4c t7d t9s t4d t3c t4s t10h 
+TARPACK1
+tac 
+TARPACK2
+
+TARPACK3
+tah t2h 
+TARPACK4
+
+HELPERCARD
+t10h
