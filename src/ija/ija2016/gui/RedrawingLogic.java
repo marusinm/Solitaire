@@ -21,7 +21,7 @@ public class RedrawingLogic {
     Game game;
     private CardStack movingStack = null;
     private CardStack selectedStackSource = null;
-    private CardStack helperStack = null; //always just one card here in this stack, reprezentuje je to stack len z jednou kartou ktora sa obracia z docku
+    public CardStack helperStack = null; //always just one card here in this stack, reprezentuje je to stack len z jednou kartou ktora sa obracia z docku
 
     enum SourceStack{
         WORKING_PACK,
@@ -64,6 +64,7 @@ public class RedrawingLogic {
         }else{
             card = new Card();
         }
+        card.turnFaceDown();
 
         CardView cardView = new CardView(card);
         cardView.setLocation(card_x_pos, card_y_pos);
@@ -78,7 +79,6 @@ public class RedrawingLogic {
                     }
                     game.gameManager.helperDeck.clear();
                 }
-
 
                 if (deck.size()-1 > -1){
                     helperStack = null; //always reload old data
@@ -145,6 +145,7 @@ public class RedrawingLogic {
             panel.repaint();
             helperCardView = cardView;
         }
+        //game.saveGame(null);
     }
 
     /**
@@ -270,6 +271,7 @@ public class RedrawingLogic {
             }
             panel.add(cardView, pack.size() - 1 - i);
             panel.repaint();
+            //game.saveGame(null);
 //            panel.add(cardView, i+1);
 //            panel.setComponentZOrder(cardView, i);
 
@@ -333,6 +335,7 @@ public class RedrawingLogic {
             });
             panel.add(cardBackgroud, 0);
             panel.repaint();
+            //game.saveGame(null);
         }
 
         cardViews.set(pack.getIdxOfWorkingPack()-1,Views);
@@ -446,6 +449,8 @@ public class RedrawingLogic {
             panel.add(cardView,0);
 //            panel.setComponentZOrder(cardView,card.value()+1);
             panel.repaint();
+
+            //game.saveGame(null);
         }
 
         //check game end

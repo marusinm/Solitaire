@@ -1,28 +1,14 @@
-WP1
-
-WP2
-f8s t10s 
-WP3
-f9d f8h t10c 
-WP4
-f5c t5d 
-WP5
-fkd f3h fjh f2d t7s t6d t5s 
-WP6
-f2s f5h fjc f7c tqc tjd 
-WP7
-f7h fqh f8d fkc fkh tqd tjs t10d t9c 
-DECK
-tad t6h tqs t2c t8c t3s t6c tas t4h t6s t9h tks t3d 
-HELPERDECK
-t4c t7d t9s t4d t3c t4s t10h 
-TARPACK1
-tac 
-TARPACK2
-
-TARPACK3
-tah t2h 
-TARPACK4
-
-HELPERCARD
-t10h
+WP1 t8h 
+WP2 f6s t6c 
+WP3 fah t3s 
+WP4 f10d fad f7c tjc 
+WP5 f6h fqc f8c f9h tkc 
+WP6 f8s f3h f4d f7s f9s t4s t3d t2c 
+WP7 f3c f6d fkd f4c fas f10c tjh 
+DECK f7d fkh f5s fks f8d fjd fqh f9c f5d f5h f10s f5c fqs f4h fjs f2d fqd fac f9d f7h f2s 
+HELPERDECK t10h t2h 
+TARPACK1 
+TARPACK2 
+TARPACK3 
+TARPACK4 
+HELPERCARD t2h

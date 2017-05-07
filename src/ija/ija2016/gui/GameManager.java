@@ -44,7 +44,7 @@ public class GameManager {
 
     public CardDeck mainCardDeck;
     public CardStack deck;
-    ArrayList<ija.ija2016.cardpack.Card> helperDeck = new ArrayList<>(); // nahravaju sa tu vsetky popnute carty z docku, pre pripad cyklenia v docku
+    public ArrayList<ija.ija2016.cardpack.Card> helperDeck = new ArrayList<>(); // nahravaju sa tu vsetky popnute carty z docku, pre pripad cyklenia v docku
 
     public CardDeck targedPack1 = new CardDeck(13);
     public CardDeck targedPack2 = new CardDeck(13);

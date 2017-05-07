@@ -142,6 +142,19 @@ public class Card implements ija.ija2016.model.cards.Card {
         }
     }
 
+    /**
+     * Face down the card.
+     * @return true if card was faced down.
+     */
+    public boolean turnFaceDown() {
+        if (isTurnedFaceUp()){
+            this.isFacedUp = false;
+            return true;
+        }else{
+            return false;
+        }
+    }
+
     @Override
     public String toString() {
         int value = value();

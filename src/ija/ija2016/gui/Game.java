@@ -13,6 +13,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 
 /**
  * Represent individual games on GUI level.
@@ -28,7 +29,8 @@ public class Game extends JInternalFrame {
     JPanel panel = new JPanel();
 
     Game game;
-    public GameManager gameManager = new GameManager();
+    public GameManager gameManager;
+    private ArrayList<String> undoHistory = new ArrayList<>();
 
     /**
      * New game constructor, sets params.
@@ -38,7 +40,7 @@ public class Game extends JInternalFrame {
      * @param desktopWidth - application width
      * @param desktopHeight - application height
      */
-    public Game(int width, int height, int gameIndex, int desktopWidth, int desktopHeight) {
+    public Game(int width, int height, int gameIndex, int desktopWidth, int desktopHeight, GameManager gameManager) {
         super("Game number "+ gameIndex,
                 true,        // resizable
                 true,        // closable
@@ -49,6 +51,12 @@ public class Game extends JInternalFrame {
         this.width = width;
         this.height = height;
         this.gameIndex = gameIndex;
+
+        if (gameManager == null) {
+            this.gameManager = new GameManager();
+        }else{
+            this.gameManager = gameManager;
+        }
 
         setSize(width, height);
         // Set the window's location.
@@ -71,7 +79,8 @@ public class Game extends JInternalFrame {
 //        setBackground(Color.green);
         setJMenuBar(createMenuBar());
 
-        panel.setBackground(Color.green);
+//        panel.setBackground(Color.green);
+        panel.setBackground(new Color(1, 128, 1));
         panel.setSize(width, height);
         panel.setLayout(null);
         add(panel);
@@ -390,117 +399,154 @@ public class Game extends JInternalFrame {
 
             redrawingLogic.drawWorkingPack(pack);
         }
+
+        //maybe game is loaded from file, there can be other objects to draw
+        if (gameManager.helperCard != null){
+            redrawingLogic.helperStack = new CardStack(1);
+            redrawingLogic.helperStack.put(gameManager.helperCard);
+            redrawingLogic.drawHelperCard();
+        }
+        CardDeck[] targetPacks = {
+                gameManager.targedPack1,
+                gameManager.targedPack2,
+                gameManager.targedPack3,
+                gameManager.targedPack4,
+        };
+
+        for (CardDeck targetPack : targetPacks) {
+            if (targetPack.size() > 0) {
+                System.out.println("Supercard idx: "+(targetPack.size() - 1));
+                redrawingLogic.drawTargetPack(targetPack.get(targetPack.size() - 1));
+            }
+        }
     }
 
+    /**
+     * Save data from GameManager instance in text file.
+     * @param file_path path where to save data. If param is NULL save to helper array for undo function.
+     */
     public void saveGame(String file_path){
-        BufferedWriter out = null;
-        try
-        {
-            FileWriter fstream = new FileWriter(file_path, false); //true tells to append data.
-//            FileWriter fstream = new FileWriter("out.txt", false); //true tells to append data.
-            out = new BufferedWriter(fstream);
+        String final_output =  "";
 
-            /*
-             *   parse here state of decks&packs
-             *   write to file
-             */
-            String shortcut;
-            boolean isFacedUp;
+        String shortcut;
+        boolean isFacedUp;
 
             /*working packs*/
-            for (int i = 0; i < this.gameManager.workingPacksArray.length; i++) {
-                out.write("WP" + (i+1)+"\n");
-                // for each card in pack
-                for (int j = 0; j < this.gameManager.workingPacksArray[i].size(); j++){
-                    isFacedUp = this.gameManager.workingPacksArray[i].getCard(j).isTurnedFaceUp();
+        for (int i = 0; i < this.gameManager.workingPacksArray.length; i++) {
+            final_output +=  "WP" + (i+1)+" ";
+            // for each card in pack
+            for (int j = 0; j < this.gameManager.workingPacksArray[i].size(); j++){
+                isFacedUp = this.gameManager.workingPacksArray[i].getCard(j).isTurnedFaceUp();
 
-                    if (isFacedUp){
-                        shortcut = "t";
-                    }else shortcut = "f";
+                if (isFacedUp){
+                    shortcut = "t";
+                }else shortcut = "f";
 
-                    out.write(shortcut);
-                    out.write(this.gameManager.workingPacksArray[i].getCard(j).toString());
-                    out.write(" ");
-                }
-
-                out.write("\n");
+                final_output +=  shortcut;
+                final_output +=  this.gameManager.workingPacksArray[i].getCard(j).toString();
+                final_output +=  " ";
             }
+
+            final_output +=  "\n";
+        }
 
             /*deck*/
-            out.write("DECK\n");
-            // store deck
-            for(int i = 0; i < (this.gameManager.deck.size()); i++){
-                isFacedUp = this.gameManager.deck.getCard(i).isTurnedFaceUp();
+        final_output +=  "DECK ";
+        // store deck
+        for(int i = 0; i < (this.gameManager.deck.size()); i++){
+            isFacedUp = this.gameManager.deck.getCard(i).isTurnedFaceUp();
 
-                shortcut = "f";
-                if (isFacedUp)
-                    shortcut = "t";
+            shortcut = "f";
+            if (isFacedUp)
+                shortcut = "t";
 
-                out.write(shortcut);
-                out.write(this.gameManager.deck.getCard(i).toString());
-                out.write(" ");
-            }
-            out.write("\n");
+            final_output +=  shortcut;
+            final_output +=  this.gameManager.deck.getCard(i).toString();
+            final_output +=  " ";
+        }
+        final_output +=  "\n";
 
             /*helper deck*/
-            out.write("HELPERDECK\n");
-            for (int i = 0; i < (this.gameManager.helperDeck.size()); i++){
-                isFacedUp = this.gameManager.helperDeck.get(i).isTurnedFaceUp();
+        final_output +=  "HELPERDECK ";
+        for (int i = 0; i < (this.gameManager.helperDeck.size()); i++){
+            isFacedUp = this.gameManager.helperDeck.get(i).isTurnedFaceUp();
+
+            shortcut = "f";
+            if (isFacedUp)
+                shortcut = "t";
+
+            final_output +=  shortcut;
+            final_output +=  this.gameManager.helperDeck.get(i).toString();
+            final_output +=  " ";
+        }
+        final_output +=  "\n";
+
+            /*target packs*/
+        CardDeck[] targetPacks = {
+                gameManager.targedPack1,
+                gameManager.targedPack2,
+                gameManager.targedPack3,
+                gameManager.targedPack4,
+        };
+        int target_pack = 0;
+        for (CardDeck targetPack : targetPacks){
+            target_pack++;
+            final_output +=  "TARPACK"+target_pack+" ";
+            for (int i = 0; i < targetPack.size(); i++){
+                isFacedUp = targetPack.get(i).isTurnedFaceUp();
 
                 shortcut = "f";
                 if (isFacedUp)
                     shortcut = "t";
 
-                out.write(shortcut);
-                out.write(this.gameManager.helperDeck.get(i).toString());
-                out.write(" ");
+                final_output +=  shortcut;
+                final_output +=  targetPack.get(i).toString();
+                final_output +=  " ";
             }
-            out.write("\n");
-
-            /*target packs*/
-            CardDeck[] targetPacks = {
-                    gameManager.targedPack1,
-                    gameManager.targedPack2,
-                    gameManager.targedPack3,
-                    gameManager.targedPack4,
-            };
-            int target_pack = 0;
-            for (CardDeck targetPack : targetPacks){
-                target_pack++;
-                out.write("TARPACK"+target_pack+"\n");
-                for (int i = 0; i < targetPack.size(); i++){
-                    isFacedUp = targetPack.get(i).isTurnedFaceUp();
-
-                    shortcut = "f";
-                    if (isFacedUp)
-                        shortcut = "t";
-
-                    out.write(shortcut);
-                    out.write(targetPack.get(i).toString());
-                    out.write(" ");
-                }
-                out.write("\n");
-            }
+            final_output +=  "\n";
+        }
 
             /*helper card*/
-            out.write("HELPERCARD\n");
-            if (gameManager.helperCard != null){
-                out.write("t");
-                out.write(this.gameManager.helperCard.toString());
-                out.write("\n");
+        final_output +=  "HELPERCARD ";
+        if (gameManager.helperCard != null){
+            final_output +=  "t";
+            final_output +=  this.gameManager.helperCard.toString();
+            final_output +=  "\n";
+        }
+
+        if (file_path != null) { //save to file
+            BufferedWriter out = null;
+            try {
+//            FileWriter fstream = new FileWriter(file_path, false); //true tells to append data.
+                FileWriter fstream = new FileWriter("out.txt", false); //true tells to append data.
+                out = new BufferedWriter(fstream);
+                out.write(final_output);
+
+            } catch (IOException e) {
+                System.err.println("Error: " + e.getMessage());
+            } finally {
+                if (out != null) {
+                    try {
+                        out.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
-        }
-        catch (IOException e)
-        {
-            System.err.println("Error: " + e.getMessage());
-        }
-        finally
-        {
-            if(out != null) {
-                try {
-                    out.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
+        }else{
+            if (undoHistory.size() < 5){
+                undoHistory.add(final_output);
+            }else{
+                //rotate items to left and save new item on last position
+                undoHistory.add(5,null);
+                for (int i = 0; i < 3; i++){
+                    undoHistory.set(i, undoHistory.get(i+1));
+                }
+                undoHistory.set(5, final_output);
+                int i = 0;
+                for (String s : undoHistory){
+                    System.out.println(i+"/////////////////////////////////////////////////////////"+i);
+                    System.out.println(s);
                 }
             }
         }
