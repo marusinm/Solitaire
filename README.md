@@ -5,7 +5,7 @@ Date: 08.05.2017
 
 ## RUN
 
-ant compile
+ant compile <br />
 ant run
 
 ## DESCRIPTION
