@@ -54,8 +54,8 @@ public class Solitaire extends JFrame {
         // Create and Set up the GUI.
         jdpDesktop = new JDesktopPane();
 
-//        createNewGameFrame(null); // Create first window
-        loadGame("examples/hello_world_game");
+        createNewGameFrame(null); // Create first window
+//        loadGame("examples/hello_world_game");
 
         setContentPane(jdpDesktop);
         setJMenuBar(createMainMenuBar());
@@ -182,7 +182,9 @@ public class Solitaire extends JFrame {
     }
 
     /**
-     * fill new game manager and launch new game
+     * Start new game from saved file.
+     * Fill new game manager and launch new game.
+     * @param file_string path to file.
      */
     public void loadGame(String file_string){
         //create new GameManager, clear/pop all data from it and load new data from saved file

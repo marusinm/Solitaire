@@ -42,6 +42,7 @@ public class Game extends JInternalFrame {
      * @param gameIndex - number of games
      * @param desktopWidth - application width
      * @param desktopHeight - application height
+     * @param  gameManager GameManager object
      */
     public Game(int width, int height, int gameIndex, int desktopWidth, int desktopHeight, GameManager gameManager) {
         super("Game number "+ gameIndex,
@@ -589,7 +590,8 @@ public class Game extends JInternalFrame {
 
 
     /**
-     * Load games from undoHistory ArrayList
+     * Load games from undoHistory ArrayList.
+     * @return GameManager object.
      */
     public GameManager loadGame() {
         isUndoSelected = true;
