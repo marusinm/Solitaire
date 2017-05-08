@@ -10,11 +10,12 @@ import java.awt.*;
 import java.util.ArrayList;
 
 /**
- * Created by Marek on 05/05/2017.
+ * Some global vars for one game are located here.
+ * @author Marek Marušin, xmarus08
+ * @version 1.0
+ * @since 2017-05-06
  */
 public class GameManager {
-    public int numberOfGames = 0;
-    
     /*deck position*/
     public int[] deck_positions = new int[2];
     public int[] helper_card_positions = new int[2];
@@ -155,7 +156,7 @@ public class GameManager {
      * @return new ImageIcon
      */
     public static ImageIcon resizeIconIfNeed(ImageIcon icon){
-        if (Solitaire.gameManager.numberOfGames
+        if (Solitaire.numberOfGames
                 != 1){
 //            int width = (int)(icon.getIconWidth()/1.3);
 //            int height = (int)(icon.getIconHeight()/1.3);

@@ -6,6 +6,7 @@
     <property name="build" location="build"/>
     <property name="dest" location="dest"/>
     <property name="lib" location="lib"/>
+    <property name="examples" location="examples"/>
     <property name="doc" location="doc"/>
 
 
@@ -37,6 +38,9 @@
         <mkdir dir="${dest}/lib"/>
         <!--<copy file="${lib}/2c.gif" todir="${dest}/lib"/>-->
         <copydir src="${lib}" dest="${dest}/lib"/>
+
+        <mkdir dir="${dest}/examples"/>
+        <copydir src="${examples}" dest="${dest}/examples"/>
 
         <!-- Generate javadocs for current project into ${doc.dir} -->
         <mkdir dir="${doc}"/>

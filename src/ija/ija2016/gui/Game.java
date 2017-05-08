@@ -1,24 +1,24 @@
 package ija.ija2016.gui;
 
+import ija.ija2016.Solitaire;
 import ija.ija2016.cardpack.Card;
 import ija.ija2016.cardpack.CardDeck;
 import ija.ija2016.cardpack.CardStack;
 
 import javax.swing.*;
-import javax.swing.event.MenuEvent;
-import javax.swing.event.MenuListener;
+import javax.swing.event.InternalFrameAdapter;
+import javax.swing.event.InternalFrameEvent;
 import java.awt.*;
-import java.awt.event.KeyEvent;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.beans.PropertyVetoException;
+import java.io.*;
 import java.util.ArrayList;
+import java.util.regex.PatternSyntaxException;
 
 /**
  * Represent individual games on GUI level.
  * @author Marek Marušin, xmarus08
- * @author Marián Mrva, xmrvam01
  * @version 1.0
  * @since 2017-05-06
  */
@@ -30,7 +30,10 @@ public class Game extends JInternalFrame {
 
     Game game;
     public GameManager gameManager;
-    private ArrayList<String> undoHistory = new ArrayList<>();
+    private RedrawingLogic redrawingLogic;
+    public ArrayList<String> undoHistory = new ArrayList<>();
+    public boolean isUndoSelected = false;
+    public boolean canSaveWorkingPackToUndoHistory = true;
 
     /**
      * New game constructor, sets params.
@@ -51,6 +54,7 @@ public class Game extends JInternalFrame {
         this.width = width;
         this.height = height;
         this.gameIndex = gameIndex;
+//        this.gameIndex = Solitaire.numberOfGames;
 
         if (gameManager == null) {
             this.gameManager = new GameManager();
@@ -79,6 +83,26 @@ public class Game extends JInternalFrame {
 //        setBackground(Color.green);
         setJMenuBar(createMenuBar());
 
+        //override close button
+        addInternalFrameListener(new InternalFrameAdapter(){
+            public void internalFrameClosing(InternalFrameEvent e) {
+                super.internalFrameClosing(e);
+                Solitaire.numberOfGames--;
+                System.out.println("end game: "+Solitaire.numberOfGames);
+                if (Solitaire.numberOfGames == 1){
+//                    Solitaire.solitaire.createNewGameFrame(gameManager);
+
+                    GameManager gameManagerAdapter = Solitaire.solitaire.game1.gameManager;
+                    try {
+                        Solitaire.solitaire.game1.setClosed(true); //close first winwod
+                    } catch (PropertyVetoException e1) {
+                        e1.printStackTrace();
+                    }
+                    Solitaire.solitaire.createNewGameFrame(gameManagerAdapter); //redraw firs window to second
+                }
+            }
+        });
+
 //        panel.setBackground(Color.green);
         panel.setBackground(new Color(1, 128, 1));
         panel.setSize(width, height);
@@ -87,6 +111,7 @@ public class Game extends JInternalFrame {
 
         prepareBoard();
         distributeMixedCardsToBoard();
+        game.saveGame(null);
     }
 
     /**
@@ -96,107 +121,121 @@ public class Game extends JInternalFrame {
     private JMenuBar createMenuBar() {
         JMenuBar menuBar = new JMenuBar();
 
-        JMenu menuSave = new JMenu("Save");
-        menuSave.setMnemonic(KeyEvent.VK_N);
-        menuSave.addMenuListener(new SaveMenuListener());
-
-        JMenu menuUndo = new JMenu("Undo");
-        menuUndo.setMnemonic(KeyEvent.VK_N);
-        menuUndo.addMenuListener(new UndoMenuListener());
-
-        JMenu menuHint = new JMenu("Hint");
-        menuHint.setMnemonic(KeyEvent.VK_N);
-        menuHint.addMenuListener(new HintMenuListener());
-
-        menuBar.add(menuSave);
-        menuBar.add(menuUndo);
-        menuBar.add(menuHint);
-
-        return menuBar;
-    }
-
-    /**
-     * Listeners for "save game" menu button.
-     */
-    class SaveMenuListener implements MenuListener {
-        @Override
-        public void menuSelected(MenuEvent e) {
-            System.out.println("save...");
-            final JFileChooser fc = new JFileChooser();
-            int returnVal = fc.showSaveDialog(game);
-            if (returnVal == JFileChooser.APPROVE_OPTION) {
-                File file = fc.getSelectedFile();
-                //This is where a real application would open the file.
-                System.out.println("Save to path: " + file.getAbsoluteFile().toString());
-                saveGame(file.getAbsoluteFile().toString());
-                JOptionPane.showMessageDialog(panel, "Game saved!");
-            } else {
-                System.out.println("Open command cancelled by user.");
+        JButton buttonSave= new JButton("Save");
+        buttonSave.setOpaque(true);
+        buttonSave.setContentAreaFilled(false);
+        buttonSave.setBorderPainted(false);
+        buttonSave.setFocusable(false);
+        buttonSave.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e)
+            {
+                System.out.println("save...");
+                final JFileChooser fc = new JFileChooser("examples/");
+                int returnVal = fc.showSaveDialog(game);
+                if (returnVal == JFileChooser.APPROVE_OPTION) {
+                    File file = fc.getSelectedFile();
+                    //This is where a real application would open the file.
+                    System.out.println("Save to path: " + file.getAbsoluteFile().toString());
+                    saveGame(file.getAbsoluteFile().toString());
+                    JOptionPane.showMessageDialog(panel, "Game saved!");
+                } else {
+                    System.out.println("Open command cancelled by user.");
+                }
             }
-        }
-        @Override
-        public void menuDeselected(MenuEvent e) {
-//            System.out.println("menuDeselected");
-        }
-        @Override
-        public void menuCanceled(MenuEvent e) {
-//            System.out.println("menuCanceled");
-        }
-    }
+        });
 
-    /**
-     * Listener for "undo" menu button.
-     */
-    class UndoMenuListener implements MenuListener {
-        @Override
-        public void menuSelected(MenuEvent e) {
-            System.out.println("undo...");
-        }
-        @Override
-        public void menuDeselected(MenuEvent e) {
-//            System.out.println("menuDeselected");
-        }
-        @Override
-        public void menuCanceled(MenuEvent e) {
-//            System.out.println("menuCanceled");
-        }
-    }
+        JButton buttonUndo= new JButton("Undo");
+        buttonUndo.setOpaque(true);
+        buttonUndo.setContentAreaFilled(false);
+        buttonUndo.setBorderPainted(false);
+        buttonUndo.setFocusable(false);
+        buttonUndo.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e)
+            {
+                System.out.println("undo...");
+                gameManager = loadGame();
+                if (undoHistory.size() < 1){
+                    JOptionPane.showMessageDialog(panel, "No more \"undo\" history created!");
+                }
 
-    /**
-     * Listener for "hint" menu button.
-     */
-    class HintMenuListener implements MenuListener {
-        @Override
-        public void menuSelected(MenuEvent e) {
-            System.out.println("hint...");
+                if (gameManager != null) {
+                    redrawingLogic.removeGui();
+                    prepareBoard();
+                    distributeMixedCardsToBoard();
+                }
+            }
+        });
 
-            CardDeck[] targetPacks = {
-                    gameManager.targedPack1,
-                    gameManager.targedPack2,
-                    gameManager.targedPack3,
-                    gameManager.targedPack4,
-            };
+        JButton buttonHint= new JButton("Hint");
+        buttonHint.setOpaque(true);
+        buttonHint.setContentAreaFilled(false);
+        buttonHint.setBorderPainted(false);
+        buttonHint.setFocusable(false);
+        buttonHint.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e)
+            {
+                System.out.println("hint...");
 
-            String hintText = "";
+                CardDeck[] targetPacks = {
+                        gameManager.targedPack1,
+                        gameManager.targedPack2,
+                        gameManager.targedPack3,
+                        gameManager.targedPack4,
+                };
 
-            for (CardStack workingPack_a : gameManager.workingPacksArray){
-                //test if we can add card between working packs
-                for (CardStack workingPack_b : gameManager.workingPacksArray){
-                    CardStack testPutStack = workingPack_b.clone();
-                    testPutStack.setIsWorkingPack(true);
-                    for (int i = 0; i < workingPack_a.size(); i++){
-                        Card card = workingPack_a.getCard(i);
-                        if(card.isTurnedFaceUp()) {
-                            if (testPutStack.put(card)) {
-                                hintText += "You can add card " + card + " from pack " + workingPack_a.getIdxOfWorkingPack() + " to top of working pack " + workingPack_b.getIdxOfWorkingPack() + "\n";
+                String hintText = "";
+
+                for (CardStack workingPack_a : gameManager.workingPacksArray){
+                    //test if we can add card between working packs
+                    for (CardStack workingPack_b : gameManager.workingPacksArray){
+                        CardStack testPutStack = workingPack_b.clone();
+                        testPutStack.setIsWorkingPack(true);
+                        for (int i = 0; i < workingPack_a.size(); i++){
+                            Card card = workingPack_a.getCard(i);
+                            if(card.isTurnedFaceUp()) {
+                                if (testPutStack.put(card)) {
+                                    hintText += "You can add card " + card + " from pack " + workingPack_a.getIdxOfWorkingPack() + " to top of working pack " + workingPack_b.getIdxOfWorkingPack() + "\n";
+                                }
+                            }
+                        }
+                    }
+
+                    //test if we can add card between working packs and target packs
+                    int target_index = 0;
+                    for(CardDeck deck : targetPacks){
+                        target_index++;
+                        CardDeck testPutDeck = deck.clone();
+//                    System.out.print("cloned: ");
+//                    for (int i = 0; i < testPutDeck.size(); i++){
+//                        System.out.print("/"+testPutDeck.get(i));
+//                    }
+//                    System.out.print("\n");
+
+                        for (int i = 0; i < workingPack_a.size(); i++){
+                            Card card = workingPack_a.getCard(i);
+                            if(card.isTurnedFaceUp()) {
+                                if (testPutDeck.put(card)) {
+                                    hintText += "You can add card " + card + " from pack " + workingPack_a.getIdxOfWorkingPack() + " to target pack " + target_index + "\n";
+                                }
                             }
                         }
                     }
                 }
 
-                //test if we can add card between working packs and target packs
+                //test add helper card to one of working packs
+                for (CardStack workingPack_a : gameManager.workingPacksArray){
+                    CardStack testPutStack = workingPack_a.clone();
+                    testPutStack.setIsWorkingPack(true);
+                    if(gameManager.helperCard!=null) {
+                        if (testPutStack.put(gameManager.helperCard)) {
+                            hintText += "You can add helper card " + gameManager.helperCard + " to top of working pack " + testPutStack.getIdxOfWorkingPack() + "\n";
+                        }
+                    }
+                }
+
+                //test add helper card to one of target packs
                 int target_index = 0;
-                for(CardDeck deck : targetPacks){
+                for(CardDeck deck : targetPacks) {
                     target_index++;
                     CardDeck testPutDeck = deck.clone();
 //                    System.out.print("cloned: ");
@@ -204,58 +243,25 @@ public class Game extends JInternalFrame {
 //                        System.out.print("/"+testPutDeck.get(i));
 //                    }
 //                    System.out.print("\n");
+                    if (gameManager.helperCard != null) {
+                        if (testPutDeck.put(gameManager.helperCard)) {
+                            hintText += "You can add helper card " + gameManager.helperCard + " to target pack " + target_index + "\n";
 
-                    for (int i = 0; i < workingPack_a.size(); i++){
-                        Card card = workingPack_a.getCard(i);
-                        if(card.isTurnedFaceUp()) {
-                            if (testPutDeck.put(card)) {
-                                hintText += "You can add card " + card + " from pack " + workingPack_a.getIdxOfWorkingPack() + " to target pack " + target_index + "\n";
-                            }
                         }
                     }
                 }
+
+                hintText += "... think or just click on left deck!\n";
+                JOptionPane.showMessageDialog(panel, hintText);
             }
+        });
 
-            //test add helper card to one of working packs
-            for (CardStack workingPack_a : gameManager.workingPacksArray){
-                CardStack testPutStack = workingPack_a.clone();
-                testPutStack.setIsWorkingPack(true);
-                if(gameManager.helperCard!=null) {
-                    if (testPutStack.put(gameManager.helperCard)) {
-                        hintText += "You can add helper card " + gameManager.helperCard + " to top of working pack " + testPutStack.getIdxOfWorkingPack() + "\n";
-                    }
-                }
-            }
 
-            //test add helper card to one of target packs
-            int target_index = 0;
-            for(CardDeck deck : targetPacks) {
-                target_index++;
-                CardDeck testPutDeck = deck.clone();
-//                    System.out.print("cloned: ");
-//                    for (int i = 0; i < testPutDeck.size(); i++){
-//                        System.out.print("/"+testPutDeck.get(i));
-//                    }
-//                    System.out.print("\n");
-                if (gameManager.helperCard != null) {
-                    if (testPutDeck.put(gameManager.helperCard)) {
-                        hintText += "You can add helper card " + gameManager.helperCard + " to target pack " + target_index + "\n";
+        menuBar.add(buttonSave);
+        menuBar.add(buttonUndo);
+        menuBar.add(buttonHint);
 
-                    }
-                }
-            }
-
-            hintText += "... think or just click on left deck!\n";
-            JOptionPane.showMessageDialog(panel, hintText);
-        }
-        @Override
-        public void menuDeselected(MenuEvent e) {
-//            System.out.println("menuDeselected");
-        }
-        @Override
-        public void menuCanceled(MenuEvent e) {
-//            System.out.println("menuCanceled");
-        }
+        return menuBar;
     }
 
     /**
@@ -391,16 +397,19 @@ public class Game extends JInternalFrame {
      * Start rendering game logic. Call class end methods which contains game logic implementation.
      */
     private void distributeMixedCardsToBoard(){
-        RedrawingLogic redrawingLogic = new RedrawingLogic(panel, game);
+        canSaveWorkingPackToUndoHistory = false;
+
+        redrawingLogic = new RedrawingLogic(panel, game);
         redrawingLogic.drawDeck(gameManager.deck);
         for (int i = 0; i < gameManager.workingPacksArray.length; i++){
             CardStack pack = gameManager.workingPacksArray[i];
-            pack.get(pack.size()-1).turnFaceUp(); //turn up last card
+            if ((pack.size()-1) >= 0)
+                pack.get(pack.size()-1).turnFaceUp(); //turn up last card
 
             redrawingLogic.drawWorkingPack(pack);
         }
 
-        //maybe game is loaded from file, there can be other objects to draw
+        //maybe game is loaded from file or undo, there can be other objects to draw
         if (gameManager.helperCard != null){
             redrawingLogic.helperStack = new CardStack(1);
             redrawingLogic.helperStack.put(gameManager.helperCard);
@@ -415,10 +424,12 @@ public class Game extends JInternalFrame {
 
         for (CardDeck targetPack : targetPacks) {
             if (targetPack.size() > 0) {
-                System.out.println("Supercard idx: "+(targetPack.size() - 1));
-                redrawingLogic.drawTargetPack(targetPack.get(targetPack.size() - 1));
+//                redrawingLogic.drawTargetPack(targetPack.get(targetPack.size() - 1));
+                redrawingLogic.drawTargetPack(targetPack);
             }
         }
+
+        canSaveWorkingPackToUndoHistory = true;
     }
 
     /**
@@ -493,6 +504,7 @@ public class Game extends JInternalFrame {
             target_pack++;
             final_output +=  "TARPACK"+target_pack+" ";
             for (int i = 0; i < targetPack.size(); i++){
+//                System.out.println("Target pack idx: "+(target_pack)+ " card"+i+": "+targetPack.get(i));
                 isFacedUp = targetPack.get(i).isTurnedFaceUp();
 
                 shortcut = "f";
@@ -517,8 +529,8 @@ public class Game extends JInternalFrame {
         if (file_path != null) { //save to file
             BufferedWriter out = null;
             try {
-//            FileWriter fstream = new FileWriter(file_path, false); //true tells to append data.
-                FileWriter fstream = new FileWriter("out.txt", false); //true tells to append data.
+            FileWriter fstream = new FileWriter(file_path, false); //true tells to append data.
+//                FileWriter fstream = new FileWriter("out.txt", false); //true tells to append data.
                 out = new BufferedWriter(fstream);
                 out.write(final_output);
 
@@ -534,21 +546,199 @@ public class Game extends JInternalFrame {
                 }
             }
         }else{
-            if (undoHistory.size() < 5){
-                undoHistory.add(final_output);
-            }else{
-                //rotate items to left and save new item on last position
-                undoHistory.add(5,null);
-                for (int i = 0; i < 3; i++){
-                    undoHistory.set(i, undoHistory.get(i+1));
-                }
-                undoHistory.set(5, final_output);
-                int i = 0;
-                for (String s : undoHistory){
-                    System.out.println(i+"/////////////////////////////////////////////////////////"+i);
-                    System.out.println(s);
+            boolean isEqualAsPrevios = false;
+            if (undoHistory.size() > 0){
+                if(undoHistory.get(undoHistory.size()-1).equals(final_output)){
+                    isEqualAsPrevios = true;
                 }
             }
+
+            if (!isEqualAsPrevios) {
+                if (undoHistory.size() < 5) {
+                    undoHistory.add(final_output);
+                } else {
+                    //rotate items to left and save new item on last position
+                    for (int i = 0; i < 4; i++) {
+                        undoHistory.set(i, undoHistory.get(i + 1));
+                    }
+                    undoHistory.set(4, final_output);
+                }
+//                int i = 0;
+//                for (String s : undoHistory) {
+//                    i++;
+//                    System.out.println(i + "/////////////////////////////////////////////////////////" + i);
+//                    System.out.println(s);
+//                }
+            }
+        }
+
+        //check game end
+        if (game.gameManager.targedPack4.size() == 13 &&
+                game.gameManager.targedPack3.size() == 13 &&
+                game.gameManager.targedPack2.size() == 13 &&
+                game.gameManager.targedPack1.size() == 13) {
+            if (game.gameManager.targedPack4.get(12).equals(new Card(Card.Color.SPADES, 13)) &&
+                    game.gameManager.targedPack3.get(12).equals(new Card(Card.Color.HEARTS, 13)) &&
+                    game.gameManager.targedPack2.get(12).equals(new Card(Card.Color.DIAMONDS, 13)) &&
+                    game.gameManager.targedPack1.get(12).equals(new Card(Card.Color.CLUBS, 13))) {
+
+                JOptionPane.showMessageDialog(panel, "You WIN!");
+            }
+        }
+    }
+
+
+    /**
+     * Load games from undoHistory ArrayList
+     */
+    public GameManager loadGame() {
+        isUndoSelected = true;
+        if (undoHistory.size() > 1) {
+            //create new GameManager, clear/pop all data from it and load new data from saved file
+            GameManager gameManager = new GameManager();
+            gameManager.deck.pop(gameManager.deck.getCard(0)); //pop all cards
+            gameManager.helperDeck = new ArrayList<>();
+            gameManager.helperCard = null;
+            gameManager.targedPack1 = new CardDeck(13);
+            gameManager.targedPack2 = new CardDeck(13);
+            gameManager.targedPack3 = new CardDeck(13);
+            gameManager.targedPack4 = new CardDeck(13);
+            for (CardStack workingPack : gameManager.workingPacksArray) {
+                workingPack.pop(workingPack.getCard(0)); //pop all cards
+                workingPack.setIsWorkingPack(false);
+            }
+
+            undoHistory.remove(undoHistory.size() - 1);
+            String undo = undoHistory.get(undoHistory.size() - 1);
+//            int j = 0;
+//            for (String s : undoHistory){
+//                j++;
+//                System.out.println(j+"/////////////////undo history///////////////////////////"+j);
+//                System.out.println(s);
+//            }
+
+            String[] lines = undo.split("\n");
+            for (String line : lines) {
+                String[] splitArray = null;
+                try {
+                    splitArray = line.split("\\s+");
+                } catch (PatternSyntaxException ex) {
+                    System.out.println(ex);
+                }
+
+                if (splitArray[0].equals("WP1")) {
+                    for (int i = 1; i < splitArray.length; i++) {
+                        Card card = Solitaire.parseCard(splitArray[i]);
+                        gameManager.workingPack1.put(card);
+                    }
+                    gameManager.workingPack1.setIsWorkingPack(true);
+                    System.out.println("working pack1: " + gameManager.workingPack1);
+
+                } else if (splitArray[0].equals("WP2")) {
+                    for (int i = 1; i < splitArray.length; i++) {
+                        Card card = Solitaire.parseCard(splitArray[i]);
+                        gameManager.workingPack2.put(card);
+                    }
+                    gameManager.workingPack2.setIsWorkingPack(true);
+                    System.out.println("working pack2: " + gameManager.workingPack2);
+
+                } else if (splitArray[0].equals("WP3")) {
+                    for (int i = 1; i < splitArray.length; i++) {
+                        Card card = Solitaire.parseCard(splitArray[i]);
+                        gameManager.workingPack3.put(card);
+                    }
+                    gameManager.workingPack3.setIsWorkingPack(true);
+                    System.out.println("working pack3: " + gameManager.workingPack3);
+
+                } else if (splitArray[0].equals("WP4")) {
+                    for (int i = 1; i < splitArray.length; i++) {
+                        Card card = Solitaire.parseCard(splitArray[i]);
+                        gameManager.workingPack4.put(card);
+                    }
+                    gameManager.workingPack4.setIsWorkingPack(true);
+                    System.out.println("working pack4: " + gameManager.workingPack4);
+
+                } else if (splitArray[0].equals("WP5")) {
+                    for (int i = 1; i < splitArray.length; i++) {
+                        Card card = Solitaire.parseCard(splitArray[i]);
+                        gameManager.workingPack5.put(card);
+                    }
+                    gameManager.workingPack5.setIsWorkingPack(true);
+                    System.out.println("working pack5: " + gameManager.workingPack5);
+
+                } else if (splitArray[0].equals("WP6")) {
+                    for (int i = 1; i < splitArray.length; i++) {
+                        Card card = Solitaire.parseCard(splitArray[i]);
+                        gameManager.workingPack6.put(card);
+                    }
+                    gameManager.workingPack6.setIsWorkingPack(true);
+                    System.out.println("working pack6: " + gameManager.workingPack6);
+
+                } else if (splitArray[0].equals("WP7")) {
+                    for (int i = 1; i < splitArray.length; i++) {
+                        Card card = Solitaire.parseCard(splitArray[i]);
+                        gameManager.workingPack7.put(card);
+                    }
+                    gameManager.workingPack7.setIsWorkingPack(true);
+                    System.out.println("working pack7: " + gameManager.workingPack7);
+
+                } else if (splitArray[0].equals("DECK")) {
+                    for (int i = 1; i < splitArray.length; i++) {
+                        Card card = Solitaire.parseCard(splitArray[i]);
+                        gameManager.deck.put(card);
+                    }
+                    System.out.println("deck: " + gameManager.deck);
+
+                } else if (splitArray[0].equals("HELPERDECK")) {
+                    for (int i = 1; i < splitArray.length; i++) {
+                        Card card = Solitaire.parseCard(splitArray[i]);
+                        gameManager.helperDeck.add(card);
+                    }
+                    System.out.println("HELPERDECK: " + gameManager.helperDeck);
+
+                } else if (splitArray[0].equals("TARPACK1")) {
+                    for (int i = 1; i < splitArray.length; i++) {
+                        Card card = Solitaire.parseCard(splitArray[i]);
+                        gameManager.targedPack1.put(card);
+                    }
+                    System.out.println("TARPACK1: " + gameManager.targedPack1);
+
+                } else if (splitArray[0].equals("TARPACK2")) {
+                    for (int i = 1; i < splitArray.length; i++) {
+                        Card card = Solitaire.parseCard(splitArray[i]);
+                        gameManager.targedPack2.put(card);
+                    }
+                    System.out.println("TARPACK2: " + gameManager.targedPack2);
+
+                } else if (splitArray[0].equals("TARPACK3")) {
+                    for (int i = 1; i < splitArray.length; i++) {
+                        Card card = Solitaire.parseCard(splitArray[i]);
+                        gameManager.targedPack3.put(card);
+                    }
+                    System.out.println("TARPACK3: " + gameManager.targedPack3);
+
+                } else if (splitArray[0].equals("TARPACK4")) {
+                    for (int i = 1; i < splitArray.length; i++) {
+                        Card card = Solitaire.parseCard(splitArray[i]);
+                        gameManager.targedPack4.put(card);
+                    }
+                    System.out.println("TARPACK4: " + gameManager.targedPack4);
+
+                } else if (splitArray[0].equals("HELPERCARD")) {
+                    if (splitArray.length == 1) {
+                        gameManager.helperCard = null;
+                    } else {
+                        Card card = Solitaire.parseCard(splitArray[1]);
+                        gameManager.helperCard = card;
+                    }
+                    System.out.println("HELPERCARD: " + gameManager.helperCard);
+                }
+
+            }
+
+            return gameManager;
+        }else{
+            return this.gameManager;
         }
     }
 }

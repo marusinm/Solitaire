@@ -1,6 +1,7 @@
 package ija.ija2016.gui;
 
 import ija.ija2016.cardpack.Card;
+import ija.ija2016.cardpack.CardDeck;
 import ija.ija2016.cardpack.CardStack;
 
 import javax.swing.*;
@@ -11,7 +12,6 @@ import java.util.ArrayList;
 /**
  * Implementatino of game logic.
  * @author Marek Marušin, xmarus08
- * @author Marián Mrva, xmrvam01
  * @version 1.0
  * @since 2017-05-06
  */
@@ -19,6 +19,11 @@ public class RedrawingLogic {
 
     JPanel panel;
     Game game;
+
+    private boolean isLastDrawedCard = false;
+    private boolean isDoubleClickFromHelpedCard = false;
+    int packToRedraw = 2;
+
     private CardStack movingStack = null;
     private CardStack selectedStackSource = null;
     public CardStack helperStack = null; //always just one card here in this stack, reprezentuje je to stack len z jednou kartou ktora sa obracia z docku
@@ -78,6 +83,11 @@ public class RedrawingLogic {
                         deck.put(card1);
                     }
                     game.gameManager.helperDeck.clear();
+
+                    //still not filled
+                    if (deck.size()-1 == -1){
+                        JOptionPane.showMessageDialog(panel, "Deck is empty!");
+                    }
                 }
 
                 if (deck.size()-1 > -1){
@@ -118,6 +128,7 @@ public class RedrawingLogic {
 
                     if (e.getClickCount() == 2) {
                         System.out.println("Double clicked on HelperCard: " + card);
+                        isDoubleClickFromHelpedCard = true;
 
                         if(drawTargetPack(card)) {
                             System.out.println("new card added to target pack");
@@ -145,7 +156,13 @@ public class RedrawingLogic {
             panel.repaint();
             helperCardView = cardView;
         }
-        //game.saveGame(null);
+
+        //if rendering after undo clickced do not save last game
+        if (!game.isUndoSelected) {
+            game.saveGame(null);
+        }else{
+            game.isUndoSelected = false;
+        }
     }
 
     /**
@@ -190,6 +207,10 @@ public class RedrawingLogic {
         for (int i = 0; i < pack.size(); i++){
             Card card = pack.getCard(i);
 
+            if (i == pack.size()-1){
+                isLastDrawedCard = true;
+            }
+
             CardView cardView = new CardView(card);
             cardView.setLocation(card_x_pos, card_y_pos);
 
@@ -213,6 +234,7 @@ public class RedrawingLogic {
                                     if ((pack.size()-1) > -1)
                                         pack.get(pack.size()-1).turnFaceUp();
                                     redrawPack(pack);
+                                    game.saveGame(null);
                                 }else{
                                     System.out.println("no card added to target pack on double click");
                                 }
@@ -271,7 +293,7 @@ public class RedrawingLogic {
             }
             panel.add(cardView, pack.size() - 1 - i);
             panel.repaint();
-            //game.saveGame(null);
+//            game.saveGame(null);
 //            panel.add(cardView, i+1);
 //            panel.setComponentZOrder(cardView, i);
 
@@ -282,6 +304,9 @@ public class RedrawingLogic {
         //theres no cards in working pack
         if (pack.size() == 0){
             Card card = new Card();
+
+            isLastDrawedCard = true;
+
             CardView cardBackgroud = new CardView(card);
 
             Views.add(cardBackgroud);
@@ -335,8 +360,19 @@ public class RedrawingLogic {
             });
             panel.add(cardBackgroud, 0);
             panel.repaint();
-            //game.saveGame(null);
         }
+
+        if (game.canSaveWorkingPackToUndoHistory) {
+            if (packToRedraw == 1){
+                if (isLastDrawedCard) {
+                    game.saveGame(null);
+                    isLastDrawedCard = false;
+                    packToRedraw = 3;
+                }
+            }
+            packToRedraw -= 1;
+        }
+
 
         cardViews.set(pack.getIdxOfWorkingPack()-1,Views);
     }
@@ -445,28 +481,97 @@ public class RedrawingLogic {
                     break;
             }
 
-//            panel.add(cardView, card.value()+1);
             panel.add(cardView,0);
-//            panel.setComponentZOrder(cardView,card.value()+1);
             panel.repaint();
-
-            //game.saveGame(null);
-        }
-
-        //check game end
-        if (game.gameManager.targedPack4.size() == 13 &&
-            game.gameManager.targedPack3.size() == 13 &&
-            game.gameManager.targedPack2.size() == 13 &&
-            game.gameManager.targedPack1.size() == 13) {
-            if (game.gameManager.targedPack4.get(12).equals(new Card(Card.Color.SPADES, 13)) &&
-                    game.gameManager.targedPack3.get(12).equals(new Card(Card.Color.HEARTS, 13)) &&
-                    game.gameManager.targedPack2.get(12).equals(new Card(Card.Color.DIAMONDS, 13)) &&
-                    game.gameManager.targedPack1.get(12).equals(new Card(Card.Color.CLUBS, 13))) {
-
-                JOptionPane.showMessageDialog(panel, "You WIN!");
-            }
         }
 
         return wasCardAdded;
+    }
+
+    /**
+     * Draw one card from top of one of target packs. Draw it on appropriate position.
+     * @param cardDeck CardDeck to render
+     */
+    public void drawTargetPack(CardDeck cardDeck){
+        Card card = cardDeck.get(cardDeck.size()-1);
+
+        int card_x_pos = 0;
+        int card_y_pos = 0;
+        switch (card.color()){
+            case CLUBS:
+                card_x_pos = game.gameManager.target_pack_1_positions[0];
+                card_y_pos = game.gameManager.target_pack_1_positions[1];
+                break;
+            case DIAMONDS:
+                card_x_pos = game.gameManager.target_pack_2_positions[0];
+                card_y_pos = game.gameManager.target_pack_2_positions[1];
+                break;
+            case HEARTS:
+                card_x_pos = game.gameManager.target_pack_3_positions[0];
+                card_y_pos = game.gameManager.target_pack_3_positions[1];
+                break;
+            case SPADES:
+                card_x_pos = game.gameManager.target_pack_4_positions[0];
+                card_y_pos = game.gameManager.target_pack_4_positions[1];
+                break;
+        }
+
+        CardView cardView = new CardView(card);
+        cardView.setLocation(card_x_pos, card_y_pos);
+
+        switch (card.color()){
+            case CLUBS:
+                if (targetCardView1 != null) {
+                    panel.remove(targetCardView1);
+                    panel.updateUI();
+                }else {
+                    panel.remove(game.gameManager.target_label_1);
+                    panel.updateUI();
+                }
+                targetCardView1 = cardView;
+                break;
+            case DIAMONDS:
+                if (targetCardView2 != null) {
+                    panel.remove(targetCardView2);
+                    panel.updateUI();
+                }else {
+                    panel.remove(game.gameManager.target_label_2);
+                    panel.updateUI();
+                }
+                targetCardView2 = cardView;
+                break;
+            case HEARTS:
+                if (targetCardView3 != null) {
+                    panel.remove(targetCardView3);
+                    panel.updateUI();
+                }else {
+                    panel.remove(game.gameManager.target_label_3);
+                    panel.updateUI();
+                }
+                targetCardView3 = cardView;
+                break;
+            case SPADES:
+                if (targetCardView4 != null) {
+                    panel.remove(targetCardView4);
+                    panel.updateUI();
+                }else {
+                    panel.remove(game.gameManager.target_label_4);
+                    panel.updateUI();
+                }
+                targetCardView4 = cardView;
+                break;
+        }
+
+        panel.add(cardView,0);
+        panel.repaint();
+    }
+
+    /**
+     * Remove all components of JPanel.
+     */
+    public void removeGui(){
+        panel.removeAll();
+        panel.updateUI();
+        panel.repaint();
     }
 }

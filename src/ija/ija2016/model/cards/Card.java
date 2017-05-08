@@ -2,8 +2,6 @@ package ija.ija2016.model.cards;
 
 /**
  * Interface represents one card.
- * @author Marek Marušin, xmarus08
- * @author Marián Mrva, xmrvam01
  * @version 1.0
  * @since 2017-05-06
  */
